@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+### Authentication (Clerk)
 
-## Getting Started
+- [ ] Setup Clerk authentication and middleware protection
+- [ ] Add sign-in and sign-up pages
+- [ ] Protect routes based on user authentication status
 
-First, run the development server:
+### Database (Drizzle + Neon)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- [ ] Setup Neon database and connect with Drizzle ORM
+- [ ] Define schema for To-Do items (id, title, completed, userId, createdAt)
+- [ ] Implement CRUD operations: Create, Read, Update, Delete To-Do items
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Add List Functionality
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- [ ] Design UI with mock data using Tailwind + shadcn components
+- [ ] Enable adding tasks
+- [ ] Enable deleting tasks
+- [ ] Enable marking tasks as complete
+- [ ] Make UI responsive for mobile and desktop
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Next.js App Structure
 
-## Learn More
+- [ ] Setup app layout with Navbar and Footer
+- [ ] Create pages for main To-Do list and user profile
+- [ ] Implement client-side data fetching and state management
 
-To learn more about Next.js, take a look at the following resources:
+### Settings Page
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [ ] Create a Settings page route
+- [ ] Add theme toggle (light/dark mode) with persistent state (localStorage or user metadata)
+- [ ] Add option to update profile information (display name, email)
+- [ ] Add notification preferences toggle
+- [ ] Add sign out and account deletion buttons (optional)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Bonus
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] Add a Good Morning/Evening message based on user’s local time
+- [ ] Add filtering (All, Completed, Pending)
+- [ ] Add due dates and reminders (advanced)
+- [ ] Add user roles (admin/user) and role-based pages
+- [ ] Write basic unit tests for components and API routes (optional)
