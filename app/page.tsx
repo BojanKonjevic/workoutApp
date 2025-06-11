@@ -4,27 +4,20 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Card } from "@/components/ui/card";
+import { useState } from "react";
+import AddWorkoutForm from "@/components/feature/AddWorkoutForm";
 
 export default function Home() {
+  const [showModal, setShowModal] = useState(false);
+
   async function handleAddWorkout() {
     try {
       const mockData = {
-        date: "2025-06-15",
+        date: "2025-06-11",
         type: "push",
         exercises: [
-          {
-            name: "Bench Press",
-            sets: 3,
-            reps: 8,
-            topWeight: 95.5,
-          },
-          {
-            name: "Overhead Press",
-            sets: 3,
-            reps: 10,
-            topWeight: 40,
-          },
+          { name: "Bench Press", sets: 3, reps: 8, topWeight: 82.5 },
+          { name: "Overhead Press", sets: 3, reps: 10, topWeight: 40 },
         ],
       };
 
@@ -36,12 +29,9 @@ export default function Home() {
 
       const data = await res.json();
 
-      if (data.success) {
-        toast("Workout Added");
-      } else {
-        toast("Failed to add workout");
-      }
-    } catch (error) {
+      if (data.success) toast("Workout Added");
+      else toast("Failed to add workout");
+    } catch {
       toast("Failed to add workout");
     }
   }
@@ -53,13 +43,24 @@ export default function Home() {
           Please Sign in to use the app
         </h1>
       </SignedOut>
+
       <Toaster />
+
       <SignedIn>
         <div className="flex flex-col items-center gap-4">
           <h1 className="text-2xl font-bold">Welcome to your app</h1>
-          <Button onClick={() => handleAddWorkout()} className="cursor-pointer">
+
+          <Button
+            className="cursor-pointer"
+            onClick={() => {
+              // handleAddWorkout();
+              setShowModal(true);
+            }}
+          >
             Add Workout
           </Button>
+
+          <AddWorkoutForm open={showModal} setOpen={setShowModal} />
         </div>
       </SignedIn>
     </main>

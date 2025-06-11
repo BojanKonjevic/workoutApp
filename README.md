@@ -11,7 +11,7 @@
 
 ### Add Functionality
 
-- [ ] Design UI using Tailwind + shadcn components
+- [x] Design UI using Tailwind + shadcn components
 - [ ] Enable adding Workouts
 - [ ] Enable changing / deleting Workouts
 
