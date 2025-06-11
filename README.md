@@ -12,7 +12,7 @@
 ### Add Functionality
 
 - [x] Design UI using Tailwind + shadcn components
-- [ ] Enable adding Workouts
+- [x] Enable adding Workouts
 - [ ] Enable changing / deleting Workouts
 
 ### Settings Page
@@ -26,3 +26,5 @@
 - [ ] Add a Good Morning/Evening message based on user’s local time
 - [ ] Add filtering
 - [ ] Add user roles (admin/user) and role-based pages
+- [ ] Add weight tracking and a chart to show progress
+- [ ] Add a consistency tracker, like you've skipped only 2 days in the past month (with emojis?)
