@@ -1,11 +1,11 @@
 ### Authentication (Clerk)
 
 - [x] Setup Clerk authentication and middleware protection
-- [ ] Only display the main content if signed in
+- [x] Only display the main content if signed in
 
 ### Database (Drizzle + Neon)
 
-- [ ] Setup Neon database and connect with Drizzle ORM
+- [x] Setup Neon database and connect with Drizzle ORM
 - [ ] Define schema for Workouts / Exercises
 - [ ] Implement CRUD operations: Create, Read, Update, Delete Workouts / Exercises
 
