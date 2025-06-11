@@ -1,41 +1,28 @@
 ### Authentication (Clerk)
 
-- [ ] Setup Clerk authentication and middleware protection
-- [ ] Add sign-in and sign-up pages
-- [ ] Protect routes based on user authentication status
+- [x] Setup Clerk authentication and middleware protection
+- [ ] Only display the main content if signed in
 
 ### Database (Drizzle + Neon)
 
 - [ ] Setup Neon database and connect with Drizzle ORM
-- [ ] Define schema for To-Do items (id, title, completed, userId, createdAt)
-- [ ] Implement CRUD operations: Create, Read, Update, Delete To-Do items
+- [ ] Define schema for Workouts / Exercises
+- [ ] Implement CRUD operations: Create, Read, Update, Delete Workouts / Exercises
 
-### Add List Functionality
+### Add Functionality
 
 - [ ] Design UI with mock data using Tailwind + shadcn components
-- [ ] Enable adding tasks
-- [ ] Enable deleting tasks
-- [ ] Enable marking tasks as complete
-- [ ] Make UI responsive for mobile and desktop
-
-### Next.js App Structure
-
-- [ ] Setup app layout with Navbar and Footer
-- [ ] Create pages for main To-Do list and user profile
-- [ ] Implement client-side data fetching and state management
+- [ ] Enable adding Workouts
+- [ ] Enable changing / deleting Workouts
 
 ### Settings Page
 
 - [ ] Create a Settings page route
 - [ ] Add theme toggle (light/dark mode) with persistent state (localStorage or user metadata)
-- [ ] Add option to update profile information (display name, email)
-- [ ] Add notification preferences toggle
-- [ ] Add sign out and account deletion buttons (optional)
+- [ ] Add option to change the look of the app
 
 ### Bonus
 
 - [ ] Add a Good Morning/Evening message based on user’s local time
-- [ ] Add filtering (All, Completed, Pending)
-- [ ] Add due dates and reminders (advanced)
+- [ ] Add filtering
 - [ ] Add user roles (admin/user) and role-based pages
-- [ ] Write basic unit tests for components and API routes (optional)
