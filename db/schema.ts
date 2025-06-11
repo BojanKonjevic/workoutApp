@@ -20,6 +20,13 @@ export const workoutTypeEnum = pgEnum("workout_type", [
   "rest",
 ]);
 
+export const userExercises = pgTable("user_exercises", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const workouts = pgTable("workouts", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id", { length: 255 }).notNull(),

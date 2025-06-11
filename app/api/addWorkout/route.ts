@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { workouts, exercises } from "@/db/schema";
+import { workouts, exercises, userExercises } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
+import { eq, and } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
@@ -35,6 +36,25 @@ export async function POST(req: Request) {
           topWeight: ex.topWeight,
         }))
       );
+
+      for (const ex of exerciseData) {
+        const existing = await db
+          .select()
+          .from(userExercises)
+          .where(
+            and(
+              eq(userExercises.userId, userId),
+              eq(userExercises.name, ex.name)
+            )
+          );
+
+        if (existing.length === 0) {
+          await db.insert(userExercises).values({
+            userId,
+            name: ex.name,
+          });
+        }
+      }
     }
 
     return NextResponse.json({ success: true });
