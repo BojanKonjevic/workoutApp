@@ -4,21 +4,48 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { Card } from "@/components/ui/card";
 
 export default function Home() {
   async function handleAddWorkout() {
     try {
-      const res = await fetch("/api/addWorkout", { method: "POST" });
+      const mockData = {
+        date: "2025-06-15",
+        type: "push",
+        exercises: [
+          {
+            name: "Bench Press",
+            sets: 3,
+            reps: 8,
+            topWeight: 95.5,
+          },
+          {
+            name: "Overhead Press",
+            sets: 3,
+            reps: 10,
+            topWeight: 40,
+          },
+        ],
+      };
+
+      const res = await fetch("/api/addWorkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mockData),
+      });
+
       const data = await res.json();
+
       if (data.success) {
         toast("Workout Added");
       } else {
-        toast("Failed to add workout" + data.error);
+        toast("Failed to add workout");
       }
     } catch (error) {
       toast("Failed to add workout");
     }
   }
+
   return (
     <main className="p-4">
       <SignedOut>
