@@ -6,8 +6,8 @@
 ### Database (Drizzle + Neon)
 
 - [x] Setup Neon database and connect with Drizzle ORM
-- [ ] Define schema for Workouts / Exercises
-- [ ] Implement CRUD operations: Create, Read, Update, Delete Workouts / Exercises
+- [x] Define schema for Workouts / Exercises
+- [x] Complete Backend API Route
 
 ### Add Functionality
 
