@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -47,6 +47,8 @@ interface SelectedExercise extends Exercise {
 
 export default function AddWorkoutForm({ open, setOpen }: Props) {
   const [type, setType] = useState("push");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [customExerciseName, setCustomExerciseName] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date()
   );
@@ -55,45 +57,123 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
     SelectedExercise[]
   >([]);
 
-  async function fetchUserExercises() {
-    const res = await fetch("/api/userExercises");
-    if (res.ok) {
-      const data = await res.json();
-      setUserExercises(data);
-    }
-  }
   useEffect(() => {
     fetchUserExercises();
   }, []);
 
-  const handleSelectExercise = (exercise: Exercise) => {
+  const fetchUserExercises = useCallback(async () => {
+    try {
+      const res = await fetch("/api/userExercises");
+      if (res.ok) {
+        const data = await res.json();
+        setUserExercises(data);
+      }
+    } catch {
+      toast.error("Failed to load exercises");
+    }
+  }, []);
+
+  const filteredExercises = useMemo(() => {
+    const lowerSearch = searchTerm.toLowerCase();
+    return userExercises.filter((ex) =>
+      ex.name.toLowerCase().includes(lowerSearch)
+    );
+  }, [userExercises, searchTerm]);
+
+  // Add exercise to selected and remove from userExercises in one functional update
+  const handleSelectExercise = useCallback((exercise: Exercise) => {
     setSelectedExercises((prev) => [
       ...prev,
       { ...exercise, sets: 3, reps: 10, weight: 0 },
     ]);
     setUserExercises((prev) => prev.filter((ex) => ex.id !== exercise.id));
-  };
+    setSearchTerm("");
+    setCustomExerciseName("");
+  }, []);
 
-  const handleRemoveExercise = (id: number) => {
-    const toRemove = selectedExercises.find((ex) => ex.id === id);
-    if (!toRemove) return;
+  async function handleDeleteExercise(id: number) {
+    try {
+      const res = await fetch(`/api/userExercises?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setUserExercises((prev) => prev.filter((ex) => ex.id !== id));
+        toast.success("Exercise deleted");
+      } else {
+        toast.error("Failed to delete exercise");
+      }
+    } catch {
+      toast.error("Failed to delete exercise");
+    }
+  }
 
-    setSelectedExercises((prev) => prev.filter((ex) => ex.id !== id));
-    setUserExercises((prev) => [
-      ...prev,
-      { id: toRemove.id, name: toRemove.name },
-    ]);
-  };
+  const handleRemoveExercise = useCallback((id: number) => {
+    setSelectedExercises((prevSelected) => {
+      const exToRemove = prevSelected.find((ex) => ex.id === id);
+      if (!exToRemove) return prevSelected;
 
-  const updateExerciseField = (
-    id: number,
-    field: "sets" | "reps" | "weight",
-    value: number
-  ) => {
-    setSelectedExercises((prev) =>
-      prev.map((ex) => (ex.id === id ? { ...ex, [field]: value } : ex))
-    );
-  };
+      setUserExercises((prevUser) => {
+        if (prevUser.some((ex) => ex.id === exToRemove.id)) {
+          return prevUser;
+        }
+        return [...prevUser, { id: exToRemove.id, name: exToRemove.name }];
+      });
+
+      return prevSelected.filter((ex) => ex.id !== id);
+    });
+  }, []);
+
+  // Update a field (sets, reps, weight) immutably but efficiently
+  const updateExerciseField = useCallback(
+    (id: number, field: "sets" | "reps" | "weight", value: number) => {
+      setSelectedExercises((prev) =>
+        prev.map((ex) => (ex.id === id ? { ...ex, [field]: value } : ex))
+      );
+    },
+    []
+  );
+
+  const addCustomExercise = useCallback(async () => {
+    const trimmedName = customExerciseName.trim();
+    if (!trimmedName) {
+      toast.error("Exercise name cannot be empty");
+      return;
+    }
+
+    if (
+      userExercises.some(
+        (ex) => ex.name.toLowerCase() === trimmedName.toLowerCase()
+      ) ||
+      selectedExercises.some(
+        (ex) => ex.name.toLowerCase() === trimmedName.toLowerCase()
+      )
+    ) {
+      toast.error("Exercise already exists");
+      return;
+    }
+
+    try {
+      // Call your API endpoint to save the custom exercise
+      const res = await fetch("/api/userExercises", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Add the new exercise returned from backend (with ID) to state
+        setUserExercises((prev) => [...prev, data.exercise]);
+        setCustomExerciseName("");
+        toast.success(`Added ${trimmedName}`);
+      } else {
+        toast.error("Failed to add exercise");
+      }
+    } catch (error) {
+      toast.error("Failed to add exercise");
+    }
+  }, [customExerciseName, userExercises, selectedExercises]);
 
   async function handleSaveWorkout() {
     if (!selectedDate) {
@@ -105,9 +185,8 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
       return;
     }
 
-    // Validation: reps, sets, weight must be > 0 for all selected exercises
     const invalidExercise = selectedExercises.find(
-      (ex) => ex.reps <= 0 || ex.sets <= 0 || ex.weight <= 0
+      (ex) => ex.reps <= 0 || ex.sets <= 0 || ex.weight < 0
     );
     if (invalidExercise) {
       toast.error(`All Reps, Sets, and Weight must be positive.`);
@@ -118,14 +197,12 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
       const body = {
         date: format(selectedDate, "yyyy-MM-dd"),
         type: type.toLowerCase(),
-        exercises: selectedExercises.map(
-          ({ id, name, sets, reps, weight }) => ({
-            name,
-            sets,
-            reps,
-            topWeight: weight,
-          })
-        ),
+        exercises: selectedExercises.map(({ name, sets, reps, weight }) => ({
+          name,
+          sets,
+          reps,
+          topWeight: weight,
+        })),
       };
 
       const res = await fetch("/api/addWorkout", {
@@ -145,10 +222,14 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
       } else {
         toast.error("Failed to add workout");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add workout");
     }
   }
+
+  const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(
+    null
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -216,24 +297,68 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
                 Select Exercise
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 max-h-60 overflow-auto">
+            <DropdownMenuContent className="w-56 max-h-80 overflow-auto flex flex-col gap-2 p-2">
               <DropdownMenuLabel>Exercises</DropdownMenuLabel>
-              {userExercises.length === 0 ? (
+              <Input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+                className="mb-2"
+              />
+              {filteredExercises.length === 0 ? (
                 <div className="px-4 py-2 text-sm text-muted-foreground">
-                  No exercises left
+                  No exercises found
                 </div>
               ) : (
-                userExercises.map((ex) => (
-                  <DropdownMenuRadioItem
+                filteredExercises.map((ex) => (
+                  <div
                     key={ex.id}
-                    value={ex.name}
-                    onClick={() => handleSelectExercise(ex)}
-                    className="cursor-pointer"
+                    className="flex justify-between items-center cursor-pointer px-2 py-1 hover:bg-muted rounded"
                   >
-                    {ex.name}
-                  </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem
+                      value={ex.name}
+                      onClick={() => handleSelectExercise(ex)}
+                      className="flex-grow cursor-pointer"
+                    >
+                      {ex.name}
+                    </DropdownMenuRadioItem>
+                    <button
+                      className="text-xl text-red-500 hover:text-red-700 ml-auto cursor-pointer font-extrabold"
+                      aria-label={`Delete ${ex.name}`}
+                      onClick={() => setExerciseToDelete(ex)}
+                    >
+                      &times;
+                    </button>
+                  </div>
                 ))
               )}
+              <hr className="my-2 border-t border-muted-foreground" />
+              <div className="flex flex-col gap-2 px-2">
+                <Input
+                  type="text"
+                  placeholder="Add exercise"
+                  value={customExerciseName}
+                  onChange={(e) => setCustomExerciseName(e.target.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustomExercise();
+                    }
+                  }}
+                  className="flex-grow"
+                />
+                <Button
+                  className="cursor-pointer"
+                  size="sm"
+                  onClick={addCustomExercise}
+                  disabled={!customExerciseName.trim()}
+                >
+                  Add
+                </Button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -254,6 +379,7 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
                     onChange={(e) =>
                       updateExerciseField(ex.id, "sets", Number(e.target.value))
                     }
+                    min={1}
                   />
                 </div>
 
@@ -266,6 +392,7 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
                     onChange={(e) =>
                       updateExerciseField(ex.id, "reps", Number(e.target.value))
                     }
+                    min={1}
                   />
                 </div>
 
@@ -282,27 +409,63 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
                         Number(e.target.value)
                       )
                     }
+                    min={0}
                   />
                 </div>
 
                 <button
                   className="text-xl text-red-500 hover:text-red-700 ml-auto cursor-pointer font-extrabold"
+                  aria-label={`Remove ${ex.name}`}
                   onClick={() => handleRemoveExercise(ex.id)}
                 >
-                  ×
+                  &times;
                 </button>
               </div>
             ))}
           </div>
 
-          <Button
-            className="px-4 py-2 bg-primary text-white rounded cursor-pointer"
-            onClick={handleSaveWorkout}
-          >
+          <Button className="cursor-pointer" onClick={handleSaveWorkout}>
             Save Workout
           </Button>
         </div>
       </DialogContent>
+      <Dialog
+        open={!!exerciseToDelete}
+        onOpenChange={(open) => {
+          if (!open) setExerciseToDelete(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>{exerciseToDelete?.name}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              className="cursor-pointer"
+              variant="outline"
+              onClick={() => setExerciseToDelete(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="cursor-pointer"
+              variant="destructive"
+              onClick={() => {
+                if (exerciseToDelete) {
+                  handleDeleteExercise(exerciseToDelete.id);
+                  setExerciseToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
