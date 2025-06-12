@@ -4,11 +4,10 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { useState } from "react";
-import AddWorkoutForm from "@/components/feature/AddWorkoutForm";
+import AddWorkoutForm from "@/components/feature/addWorkoutForm";
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
-
   return (
     <main className="p-4">
       <SignedOut>
