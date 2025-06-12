@@ -105,6 +105,15 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
       return;
     }
 
+    // Validation: reps, sets, weight must be > 0 for all selected exercises
+    const invalidExercise = selectedExercises.find(
+      (ex) => ex.reps <= 0 || ex.sets <= 0 || ex.weight <= 0
+    );
+    if (invalidExercise) {
+      toast.error(`All Reps, Sets, and Weight must be positive.`);
+      return;
+    }
+
     try {
       const body = {
         date: format(selectedDate, "yyyy-MM-dd"),
