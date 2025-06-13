@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
-import { prs } from "@/db/schema"; // adjust if different
+import { prs } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 
-// Define the PR row type manually if not already imported
 type PR = {
   id: number;
   userId: string;
@@ -14,6 +13,15 @@ type PR = {
   createdAt: string;
 };
 
+const bodyweightExercises = [
+  "Pull-Up",
+  "Push-Up",
+  "Dips",
+  "Chin-Up",
+  "Inverted Row",
+  "Bodyweight Squat",
+];
+
 export async function GET() {
   const { userId } = await auth();
 
@@ -21,17 +29,17 @@ export async function GET() {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  // Step 1: Get distinct exercise names
+  // Get distinct exercise names
   const distinctExercises: { exerciseName: string }[] = await db
     .selectDistinctOn([prs.exerciseName])
     .from(prs)
     .where(eq(prs.userId, userId));
 
   const exerciseNames: string[] = distinctExercises.map(
-    (row: { exerciseName: string }) => row.exerciseName
+    (row) => row.exerciseName
   );
 
-  // Step 2: Get all PRs
+  // Get all PRs
   const allPrs: PR[] = (
     await db
       .select()
@@ -44,17 +52,15 @@ export async function GET() {
     createdAt: pr.createdAt.toISOString(),
   }));
 
-  // Step 3: Group them
-  const grouped = exerciseNames.map((name: string) => {
+  // Group them
+  const grouped = exerciseNames.map((name) => {
     const records = allPrs
-      .filter((pr: PR) => pr.exerciseName === name)
-      .sort(
-        (a: PR, b: PR) =>
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
+      .filter((pr) => pr.exerciseName === name)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return {
       name,
+      isBodyweight: bodyweightExercises.includes(name),
       prs: records,
     };
   });

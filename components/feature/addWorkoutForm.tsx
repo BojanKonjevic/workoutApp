@@ -195,7 +195,7 @@ export default function AddWorkoutForm({
     }
 
     const invalidExercise = selectedExercises.find(
-      (ex) => ex.reps <= 0 || ex.sets <= 0 || ex.weight < 0
+      (ex) => ex.reps <= 0 || ex.sets <= 0 || ex.weight <= 0
     );
     if (invalidExercise) {
       toast.error(`All Reps, Sets, and Weight must be positive.`);
@@ -379,16 +379,21 @@ export default function AddWorkoutForm({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex flex-col gap-4">
+          <div className="max-h-[400px] overflow-y-auto hide-scrollbar grid grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-4 p-3 bg-muted rounded">
+            <div className="font-semibold">Exercise</div>
+            <div className="font-semibold text-center">Sets</div>
+            <div className="font-semibold text-center">Reps</div>
+            <div className="font-semibold text-center">Weight</div>
+            <div></div>
             {selectedExercises.map((ex) => (
-              <div
-                key={ex.id}
-                className="bg-muted rounded p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
-              >
-                <div className="font-medium">{ex.name}</div>
-
-                <div className="flex gap-2 items-center">
-                  <label className="text-sm">Sets</label>
+              <>
+                <div key={`name-${ex.id}`} className="flex items-center">
+                  {ex.name}
+                </div>
+                <div
+                  key={`sets-${ex.id}`}
+                  className="flex items-center justify-center"
+                >
                   <Input
                     type="number"
                     className="w-16"
@@ -399,9 +404,10 @@ export default function AddWorkoutForm({
                     min={1}
                   />
                 </div>
-
-                <div className="flex gap-2 items-center">
-                  <label className="text-sm">Reps</label>
+                <div
+                  key={`reps-${ex.id}`}
+                  className="flex items-center justify-center"
+                >
                   <Input
                     type="number"
                     className="w-16"
@@ -412,9 +418,10 @@ export default function AddWorkoutForm({
                     min={1}
                   />
                 </div>
-
-                <div className="flex gap-2 items-center">
-                  <label className="text-sm">Weight</label>
+                <div
+                  key={`weight-${ex.id}`}
+                  className="flex items-center justify-center"
+                >
                   <Input
                     type="number"
                     className="w-20"
@@ -429,15 +436,19 @@ export default function AddWorkoutForm({
                     min={0}
                   />
                 </div>
-
-                <button
-                  className="text-xl text-red-500 hover:text-red-700 ml-auto cursor-pointer font-extrabold"
-                  aria-label={`Remove ${ex.name}`}
-                  onClick={() => handleRemoveExercise(ex.id)}
+                <div
+                  key={`remove-${ex.id}`}
+                  className="flex items-center justify-center"
                 >
-                  &times;
-                </button>
-              </div>
+                  <button
+                    className="text-xl text-red-500 hover:text-red-700 cursor-pointer font-extrabold"
+                    aria-label={`Remove ${ex.name}`}
+                    onClick={() => handleRemoveExercise(ex.id)}
+                  >
+                    &times;
+                  </button>
+                </div>
+              </>
             ))}
           </div>
 
