@@ -15,7 +15,8 @@
 - [x] Enable adding Workouts
 - [x] For now finish the adding workout form component
 - [x] Display workouts and PRs on the page
-- [ ] Enable changing / deleting Workouts
+- [ ] Add filtering to
+- [ ] Enable deleting Workouts
 - [ ] Make it look good
 
 ### Settings Page

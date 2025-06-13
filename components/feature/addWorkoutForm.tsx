@@ -28,11 +28,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import React from "react";
 
 type AddWorkoutFormProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
-  onSuccess: () => void; // new prop
+  onSuccess: () => void;
 };
 interface Props {
   open: boolean;
@@ -379,14 +380,14 @@ export default function AddWorkoutForm({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="max-h-[400px] overflow-y-auto hide-scrollbar grid grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-4 p-3 bg-muted rounded">
+          <div className="max-h-[400px] overflow-y-auto hide-scrollbar grid grid-cols-[2.5fr_1fr_1fr_1fr_auto] gap-4 p-3 bg-muted rounded">
             <div className="font-semibold">Exercise</div>
             <div className="font-semibold text-center">Sets</div>
             <div className="font-semibold text-center">Reps</div>
             <div className="font-semibold text-center">Weight</div>
             <div></div>
             {selectedExercises.map((ex) => (
-              <>
+              <React.Fragment key={ex.id}>
                 <div key={`name-${ex.id}`} className="flex items-center">
                   {ex.name}
                 </div>
@@ -448,7 +449,7 @@ export default function AddWorkoutForm({
                     &times;
                   </button>
                 </div>
-              </>
+              </React.Fragment>
             ))}
           </div>
 

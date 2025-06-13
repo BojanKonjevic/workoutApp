@@ -14,7 +14,7 @@ export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  function handleWorkoutAdded() {
+  function refreshRecords() {
     setRefreshKey((prev) => prev + 1);
   }
   function getTimeBasedGreeting() {
@@ -45,10 +45,10 @@ export default function Home() {
           <AddWorkoutForm
             open={showModal}
             setOpen={setShowModal}
-            onSuccess={handleWorkoutAdded}
+            onSuccess={refreshRecords}
           />
           <div className="w-full flex justify-around">
-            <WorkoutsList refreshKey={refreshKey} />
+            <WorkoutsList refreshKey={refreshKey} onSuccess={refreshRecords} />
             <PersonalRecords refreshKey={refreshKey} />
           </div>
         </div>

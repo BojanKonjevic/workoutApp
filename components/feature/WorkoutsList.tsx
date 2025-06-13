@@ -6,7 +6,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
+import { Button } from "../ui/button";
+import { toast } from "sonner";
 type Exercise = {
   id: number;
   name: string;
@@ -14,6 +15,15 @@ type Exercise = {
   reps: number;
   topWeight: number;
 };
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { workouts } from "@/db/schema";
+import { InferModel } from "drizzle-orm";
 
 const workoutColors: Record<string, string> = {
   push: "text-red-500",
@@ -41,6 +51,11 @@ function getOrdinalSuffix(day: number) {
   }
 }
 
+type workoutsListProps = {
+  refreshKey: number;
+  onSuccess: () => void;
+};
+
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
@@ -53,10 +68,29 @@ function formatDate(dateStr: string) {
 
   return `${month} ${day}${ordinal}`;
 }
-
-export default function WorkoutsList({ refreshKey }: { refreshKey: number }) {
+type Workout = InferModel<typeof workouts>;
+export default function WorkoutsList({
+  refreshKey,
+  onSuccess,
+}: workoutsListProps) {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [workoutToDelete, setWorkoutToDelete] = useState<Workout | null>(null);
+
+  const handleDelete = async (id: number) => {
+    const res = await fetch(`/api/deleteWorkout?id=${id}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      setWorkouts((prev) => prev.filter((w) => w.id !== id));
+      toast.success("Workout deleted");
+      onSuccess();
+    } else {
+      const data = await res.json();
+      toast(data.error || "Failed to delete workout");
+    }
+  };
 
   useEffect(() => {
     const fetchWorkouts = async () => {
@@ -130,12 +164,64 @@ export default function WorkoutsList({ refreshKey }: { refreshKey: number }) {
                       </li>
                     ))}
                   </ul>
+
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      className="cursor-pointer"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setWorkoutToDelete(workout)}
+                    >
+                      Delete Workout
+                    </Button>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           );
         })}
       </div>
+      <Dialog
+        open={!!workoutToDelete}
+        onOpenChange={(open) => {
+          if (!open) setWorkoutToDelete(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the workout on{" "}
+              <strong>
+                {workoutToDelete?.createdAt &&
+                  new Date(workoutToDelete.createdAt).toLocaleDateString()}
+              </strong>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              className="cursor-pointer"
+              variant="outline"
+              onClick={() => setWorkoutToDelete(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="cursor-pointer"
+              variant="destructive"
+              onClick={() => {
+                if (workoutToDelete) {
+                  handleDelete(workoutToDelete.id);
+                  setWorkoutToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
