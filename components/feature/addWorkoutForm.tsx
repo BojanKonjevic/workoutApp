@@ -29,6 +29,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+type AddWorkoutFormProps = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  onSuccess: () => void; // new prop
+};
 interface Props {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -45,7 +50,11 @@ interface SelectedExercise extends Exercise {
   weight: number;
 }
 
-export default function AddWorkoutForm({ open, setOpen }: Props) {
+export default function AddWorkoutForm({
+  open,
+  setOpen,
+  onSuccess,
+}: AddWorkoutFormProps) {
   const [type, setType] = useState("push");
   const [searchTerm, setSearchTerm] = useState("");
   const [customExerciseName, setCustomExerciseName] = useState("");
@@ -219,6 +228,7 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
         setSelectedExercises([]);
         setSelectedDate(new Date());
         fetchUserExercises();
+        onSuccess();
       } else {
         toast.error("Failed to add workout");
       }
@@ -251,17 +261,24 @@ export default function AddWorkoutForm({ open, setOpen }: Props) {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
                 <DropdownMenuRadioGroup value={type} onValueChange={setType}>
-                  {["push", "pull", "legs", "upper", "lower", "full body"].map(
-                    (t) => (
-                      <DropdownMenuRadioItem
-                        key={t}
-                        value={t}
-                        className="cursor-pointer"
-                      >
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
-                      </DropdownMenuRadioItem>
-                    )
-                  )}
+                  {[
+                    "push",
+                    "pull",
+                    "legs",
+                    "upper",
+                    "lower",
+                    "arms",
+                    "shoulders",
+                    "full body",
+                  ].map((t) => (
+                    <DropdownMenuRadioItem
+                      key={t}
+                      value={t}
+                      className="cursor-pointer"
+                    >
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </DropdownMenuRadioItem>
+                  ))}
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>

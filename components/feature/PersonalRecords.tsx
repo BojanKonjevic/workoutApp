@@ -49,7 +49,11 @@ function formatDate(dateStr: string) {
   return `${month} ${day}${ordinal}`;
 }
 
-export default function PersonalRecords() {
+export default function PersonalRecords({
+  refreshKey,
+}: {
+  refreshKey: number;
+}) {
   const [data, setData] = useState<GroupedPRs[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,12 +62,25 @@ export default function PersonalRecords() {
       const res = await fetch("/api/getRecords");
       if (res.ok) {
         const json = await res.json();
+        json.sort((a: GroupedPRs, b: GroupedPRs) => {
+          const latestDateA = a.prs.reduce((latest, pr) => {
+            const d = new Date(pr.date);
+            return d > latest ? d : latest;
+          }, new Date(0));
+
+          const latestDateB = b.prs.reduce((latest, pr) => {
+            const d = new Date(pr.date);
+            return d > latest ? d : latest;
+          }, new Date(0));
+
+          return latestDateB.getTime() - latestDateA.getTime();
+        });
         setData(json);
       }
       setLoading(false);
     }
     fetchPRs();
-  }, []);
+  }, [refreshKey]);
 
   if (loading) {
     return <p>Loading PRs...</p>;
@@ -105,7 +122,7 @@ export default function PersonalRecords() {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4 pt-2">
                 <div className="grid grid-cols-[1fr_auto] gap-4 px-1 text-sm font-semibold text-muted-foreground mb-2 border-b pb-1">
-                  <span>Date</span>
+                  <span>First Achieved</span>
                   <span>Weight (kg)</span>
                 </div>
                 <ul className="space-y-2">

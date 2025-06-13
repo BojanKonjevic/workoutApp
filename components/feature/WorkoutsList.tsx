@@ -15,6 +15,17 @@ type Exercise = {
   topWeight: number;
 };
 
+const workoutColors: Record<string, string> = {
+  push: "text-red-500",
+  pull: "text-blue-500",
+  legs: "text-green-600",
+  upper: "text-purple-600",
+  lower: "text-yellow-600",
+  arms: "text-pink-500",
+  shoulders: "text-indigo-500",
+  full: "text-teal-600",
+};
+
 // Helper to get ordinal suffix for a day number
 function getOrdinalSuffix(day: number) {
   if (day > 3 && day < 21) return "th"; // 11th to 20th
@@ -43,8 +54,9 @@ function formatDate(dateStr: string) {
   return `${month} ${day}${ordinal}`;
 }
 
-export default function WorkoutsList() {
+export default function WorkoutsList({ refreshKey }: { refreshKey: number }) {
   const [workouts, setWorkouts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchWorkouts = async () => {
@@ -53,9 +65,14 @@ export default function WorkoutsList() {
         const data = await res.json();
         setWorkouts(data);
       }
+      setLoading(false);
     };
     fetchWorkouts();
-  }, []);
+  }, [refreshKey]);
+
+  if (loading) {
+    return <p>Loading workouts...</p>;
+  }
 
   if (!workouts.length) {
     return <h1>No workouts found.</h1>;
@@ -66,6 +83,9 @@ export default function WorkoutsList() {
       <h1 className="text-3xl font-bold mb-4 text-center">Your Workouts</h1>
       {workouts.map((workout, index) => {
         const exercises: Exercise[] = workout.exercises || [];
+        const colorClass =
+          workoutColors[workout.type?.toLowerCase()] || "text-gray-700";
+
         return (
           <Accordion
             key={workout.id}
@@ -76,7 +96,9 @@ export default function WorkoutsList() {
             <AccordionItem value={String(index)}>
               <AccordionTrigger className="p-4">
                 <div className="flex justify-between w-full items-center">
-                  <h2 className="capitalize font-semibold text-lg">
+                  <h2
+                    className={`capitalize font-semibold text-lg ${colorClass}`}
+                  >
                     {workout.type}
                   </h2>
                   <p className="text-sm text-muted-foreground">

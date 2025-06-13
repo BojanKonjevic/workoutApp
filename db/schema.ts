@@ -17,8 +17,9 @@ export const workoutTypeEnum = pgEnum("workout_type", [
   "legs",
   "upper",
   "lower",
+  "arms",
+  "shoulders",
   "full",
-  "rest",
 ]);
 
 export const userExercises = pgTable("user_exercises", {
