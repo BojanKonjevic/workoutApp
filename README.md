@@ -14,8 +14,8 @@
 - [x] Design UI using Tailwind + shadcn components
 - [x] Enable adding Workouts
 - [x] For now finish the adding workout form component
+- [x] Display workouts and PRs on the page
 - [ ] Enable changing / deleting Workouts
-- [ ] Display everything on the page
 - [ ] Make it look good
 
 ### Settings Page

@@ -4,7 +4,9 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { useState } from "react";
-import AddWorkoutForm from "@/components/feature/addWorkoutForm";
+import AddWorkoutForm from "@/components/feature/AddWorkoutForm";
+import PersonalRecords from "@/components/feature/PersonalRecords";
+import WorkoutsList from "@/components/feature/WorkoutsList";
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -21,12 +23,14 @@ export default function Home() {
       <SignedIn>
         <div className="flex flex-col items-center gap-4">
           <h1 className="text-2xl font-bold">Welcome to your app</h1>
-
           <Button className="cursor-pointer" onClick={() => setShowModal(true)}>
             Add Workout
           </Button>
-
           <AddWorkoutForm open={showModal} setOpen={setShowModal} />
+          <div className="w-full flex justify-around">
+            <WorkoutsList />
+            <PersonalRecords />
+          </div>
         </div>
       </SignedIn>
     </main>
