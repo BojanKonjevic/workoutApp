@@ -25,9 +25,9 @@ export async function DELETE(req: Request) {
   try {
     const url = new URL(req.url);
     const idParam = url.searchParams.get("id");
-    const id = idParam ? parseInt(idParam) : NaN;
+    const id = parseInt(idParam || "");
 
-    if (!id || isNaN(id)) {
+    if (isNaN(id)) {
       return NextResponse.json(
         { error: "Invalid or missing exercise id" },
         { status: 400 }
@@ -103,8 +103,9 @@ export async function POST(req: Request) {
 
   try {
     const { name } = await req.json();
+    const trimmedName = typeof name === "string" ? name.trim() : "";
 
-    if (!name || typeof name !== "string" || name.trim() === "") {
+    if (!trimmedName) {
       return NextResponse.json(
         { error: "Invalid exercise name" },
         { status: 400 }
@@ -117,7 +118,7 @@ export async function POST(req: Request) {
       .where(
         and(
           eq(userExercises.userId, userId),
-          eq(userExercises.name, name.trim())
+          eq(userExercises.name, trimmedName)
         )
       );
 
@@ -134,7 +135,7 @@ export async function POST(req: Request) {
       .insert(userExercises)
       .values({
         userId,
-        name: name.trim() as string,
+        name: trimmedName,
         highestWeight: "0.00",
         firstPrDate: nowDateString,
         lastPrDate: nowDateString,

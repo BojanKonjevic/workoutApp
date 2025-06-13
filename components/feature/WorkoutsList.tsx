@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useCallback } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -8,13 +9,6 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
-type Exercise = {
-  id: number;
-  name: string;
-  sets: number;
-  reps: number;
-  topWeight: number;
-};
 import {
   Dialog,
   DialogContent,
@@ -25,15 +19,12 @@ import {
 import { workouts } from "@/db/schema";
 import { InferModel } from "drizzle-orm";
 
-const workoutColors: Record<string, string> = {
-  push: "text-red-500",
-  pull: "text-blue-500",
-  legs: "text-green-600",
-  upper: "text-purple-600",
-  lower: "text-yellow-600",
-  arms: "text-pink-500",
-  shoulders: "text-indigo-500",
-  full: "text-teal-600",
+type Exercise = {
+  id: number;
+  name: string;
+  sets: number;
+  reps: number;
+  topWeight: number;
 };
 
 // Helper to get ordinal suffix for a day number
@@ -51,11 +42,6 @@ function getOrdinalSuffix(day: number) {
   }
 }
 
-type workoutsListProps = {
-  refreshKey: number;
-  onSuccess: () => void;
-};
-
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
@@ -68,49 +54,74 @@ function formatDate(dateStr: string) {
 
   return `${month} ${day}${ordinal}`;
 }
-type Workout = InferModel<typeof workouts>;
+
+type Workout = InferModel<typeof workouts> & {
+  exercises: Exercise[];
+};
+
+type WorkoutsListProps = {
+  refreshKey: number;
+  onSuccess: () => void;
+};
+
 export default function WorkoutsList({
   refreshKey,
   onSuccess,
-}: workoutsListProps) {
-  const [workouts, setWorkouts] = useState<any[]>([]);
+}: WorkoutsListProps) {
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [workoutToDelete, setWorkoutToDelete] = useState<Workout | null>(null);
 
-  const handleDelete = async (id: number) => {
-    const res = await fetch(`/api/deleteWorkout?id=${id}`, {
-      method: "DELETE",
-    });
+  const handleDelete = useCallback(
+    async (id: number) => {
+      try {
+        const res = await fetch(`/api/deleteWorkout?id=${id}`, {
+          method: "DELETE",
+        });
 
-    if (res.ok) {
-      setWorkouts((prev) => prev.filter((w) => w.id !== id));
-      toast.success("Workout deleted");
-      onSuccess();
-    } else {
-      const data = await res.json();
-      toast(data.error || "Failed to delete workout");
-    }
-  };
+        if (res.ok) {
+          setWorkouts((prev) => prev.filter((w) => w.id !== id));
+          toast.success("Workout deleted");
+          onSuccess();
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Failed to delete workout");
+        }
+      } catch {
+        toast.error("Network error while deleting workout");
+      }
+    },
+    [onSuccess]
+  );
 
   useEffect(() => {
-    const fetchWorkouts = async () => {
-      const res = await fetch("/api/getWorkouts");
-      if (res.ok) {
-        const data = await res.json();
-        setWorkouts(data);
+    let isMounted = true;
+
+    async function fetchWorkouts() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/getWorkouts");
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) setWorkouts(data);
+        } else {
+          toast.error("Failed to fetch workouts");
+        }
+      } catch {
+        toast.error("Network error while fetching workouts");
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
-    };
+    }
     fetchWorkouts();
+
+    return () => {
+      isMounted = false;
+    };
   }, [refreshKey]);
 
-  if (loading) {
-    return <p>Loading workouts...</p>;
-  }
-
-  if (!workouts.length) {
-    return <h1>No workouts found.</h1>;
-  }
+  if (loading) return <p>Loading workouts...</p>;
+  if (!workouts.length) return <h1>No workouts found.</h1>;
 
   return (
     <div className="max-w-xl w-full mx-auto space-y-6">
@@ -118,9 +129,7 @@ export default function WorkoutsList({
 
       <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto hide-scrollbar">
         {workouts.map((workout, index) => {
-          const exercises: Exercise[] = workout.exercises || [];
-          const colorClass =
-            workoutColors[workout.type?.toLowerCase()] || "text-gray-700";
+          const exercises: Exercise[] = workout.exercises ?? [];
 
           return (
             <Accordion
@@ -132,9 +141,7 @@ export default function WorkoutsList({
               <AccordionItem value={String(index)}>
                 <AccordionTrigger className="p-4">
                   <div className="flex justify-between w-full items-center">
-                    <h2
-                      className={`capitalize font-semibold text-lg ${colorClass}`}
-                    >
+                    <h2 className="capitalize font-semibold text-lg">
                       {workout.type}
                     </h2>
                     <p className="text-sm text-muted-foreground">
@@ -149,17 +156,17 @@ export default function WorkoutsList({
                     <span>Top Set</span>
                   </div>
                   <ul className="space-y-2">
-                    {exercises.map((exercise) => (
+                    {exercises.map(({ id, name, sets, reps, topWeight }) => (
                       <li
                         className="grid grid-cols-[1fr_auto_auto] gap-4 px-1"
-                        key={exercise.id}
+                        key={id}
                       >
-                        <p className="font-medium">{exercise.name}</p>
+                        <p className="font-medium">{name}</p>
                         <p className="whitespace-nowrap text-right">
-                          {exercise.sets}x{exercise.reps}
+                          {sets}x{reps}
                         </p>
                         <p className="whitespace-nowrap text-right">
-                          {exercise.topWeight}kg
+                          {topWeight}kg
                         </p>
                       </li>
                     ))}
@@ -167,7 +174,7 @@ export default function WorkoutsList({
 
                   <div className="flex justify-end pt-4">
                     <Button
-                      className="cursor-pointer"
+                      className="cursor-pointer bg-red-600"
                       variant="destructive"
                       size="sm"
                       onClick={() => setWorkoutToDelete(workout)}
@@ -181,6 +188,7 @@ export default function WorkoutsList({
           );
         })}
       </div>
+
       <Dialog
         open={!!workoutToDelete}
         onOpenChange={(open) => {
@@ -193,8 +201,9 @@ export default function WorkoutsList({
             <DialogDescription>
               Are you sure you want to delete the workout on{" "}
               <strong>
-                {workoutToDelete?.createdAt &&
-                  new Date(workoutToDelete.createdAt).toLocaleDateString()}
+                {workoutToDelete?.createdAt
+                  ? new Date(workoutToDelete.createdAt).toLocaleDateString()
+                  : ""}
               </strong>
               ?
             </DialogDescription>

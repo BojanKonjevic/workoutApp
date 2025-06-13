@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -28,17 +28,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import React from "react";
 
 type AddWorkoutFormProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
   onSuccess: () => void;
 };
-interface Props {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}
 
 interface Exercise {
   id: number;
@@ -50,6 +45,86 @@ interface SelectedExercise extends Exercise {
   reps: number;
   weight: number;
 }
+
+const EXERCISE_TYPES = [
+  "push",
+  "pull",
+  "legs",
+  "upper",
+  "lower",
+  "arms",
+  "shoulders",
+  "full body",
+];
+
+// Memoized Exercise Row to prevent unnecessary re-renders
+const ExerciseRow = React.memo(function ExerciseRow({
+  ex,
+  onUpdateField,
+  onRemove,
+}: {
+  ex: SelectedExercise;
+  onUpdateField: (
+    id: number,
+    field: "sets" | "reps" | "weight",
+    value: number
+  ) => void;
+  onRemove: (id: number) => void;
+}) {
+  const handleChange = useCallback(
+    (field: "sets" | "reps" | "weight") =>
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = Number(e.target.value);
+        onUpdateField(ex.id, field, value);
+      },
+    [ex.id, onUpdateField]
+  );
+
+  const handleRemove = useCallback(() => onRemove(ex.id), [ex.id, onRemove]);
+
+  return (
+    <>
+      <div className="flex items-center">{ex.name}</div>
+      <div className="flex items-center justify-center">
+        <Input
+          type="number"
+          className="w-16"
+          value={ex.sets}
+          onChange={handleChange("sets")}
+          min={1}
+        />
+      </div>
+      <div className="flex items-center justify-center">
+        <Input
+          type="number"
+          className="w-16"
+          value={ex.reps}
+          onChange={handleChange("reps")}
+          min={1}
+        />
+      </div>
+      <div className="flex items-center justify-center">
+        <Input
+          type="number"
+          className="w-20"
+          value={ex.weight}
+          onChange={handleChange("weight")}
+          min={0}
+        />
+      </div>
+      <div className="flex items-center justify-center">
+        <button
+          className="text-xl text-red-500 hover:text-red-700 cursor-pointer font-extrabold"
+          aria-label={`Remove ${ex.name}`}
+          onClick={handleRemove}
+          type="button"
+        >
+          &times;
+        </button>
+      </div>
+    </>
+  );
+});
 
 export default function AddWorkoutForm({
   open,
@@ -66,10 +141,9 @@ export default function AddWorkoutForm({
   const [selectedExercises, setSelectedExercises] = useState<
     SelectedExercise[]
   >([]);
-
-  useEffect(() => {
-    fetchUserExercises();
-  }, []);
+  const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(
+    null
+  );
 
   const fetchUserExercises = useCallback(async () => {
     try {
@@ -83,6 +157,10 @@ export default function AddWorkoutForm({
     }
   }, []);
 
+  useEffect(() => {
+    fetchUserExercises();
+  }, [fetchUserExercises]);
+
   const filteredExercises = useMemo(() => {
     const lowerSearch = searchTerm.toLowerCase();
     return userExercises.filter((ex) =>
@@ -90,7 +168,6 @@ export default function AddWorkoutForm({
     );
   }, [userExercises, searchTerm]);
 
-  // Add exercise to selected and remove from userExercises in one functional update
   const handleSelectExercise = useCallback((exercise: Exercise) => {
     setSelectedExercises((prev) => [
       ...prev,
@@ -101,7 +178,7 @@ export default function AddWorkoutForm({
     setCustomExerciseName("");
   }, []);
 
-  async function handleDeleteExercise(id: number) {
+  const handleDeleteExercise = useCallback(async (id: number) => {
     try {
       const res = await fetch(`/api/userExercises?id=${id}`, {
         method: "DELETE",
@@ -115,7 +192,7 @@ export default function AddWorkoutForm({
     } catch {
       toast.error("Failed to delete exercise");
     }
-  }
+  }, []);
 
   const handleRemoveExercise = useCallback((id: number) => {
     setSelectedExercises((prevSelected) => {
@@ -123,9 +200,7 @@ export default function AddWorkoutForm({
       if (!exToRemove) return prevSelected;
 
       setUserExercises((prevUser) => {
-        if (prevUser.some((ex) => ex.id === exToRemove.id)) {
-          return prevUser;
-        }
+        if (prevUser.some((ex) => ex.id === exToRemove.id)) return prevUser;
         return [...prevUser, { id: exToRemove.id, name: exToRemove.name }];
       });
 
@@ -133,7 +208,6 @@ export default function AddWorkoutForm({
     });
   }, []);
 
-  // Update a field (sets, reps, weight) immutably but efficiently
   const updateExerciseField = useCallback(
     (id: number, field: "sets" | "reps" | "weight", value: number) => {
       setSelectedExercises((prev) =>
@@ -163,7 +237,6 @@ export default function AddWorkoutForm({
     }
 
     try {
-      // Call your API endpoint to save the custom exercise
       const res = await fetch("/api/userExercises", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,19 +246,18 @@ export default function AddWorkoutForm({
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Add the new exercise returned from backend (with ID) to state
         setUserExercises((prev) => [...prev, data.exercise]);
         setCustomExerciseName("");
         toast.success(`Added ${trimmedName}`);
       } else {
         toast.error("Failed to add exercise");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add exercise");
     }
   }, [customExerciseName, userExercises, selectedExercises]);
 
-  async function handleSaveWorkout() {
+  const handleSaveWorkout = useCallback(async () => {
     if (!selectedDate) {
       toast.error("Please select a date");
       return;
@@ -236,227 +308,185 @@ export default function AddWorkoutForm({
     } catch {
       toast.error("Failed to add workout");
     }
-  }
+  }, [
+    selectedDate,
+    selectedExercises,
+    type,
+    setOpen,
+    fetchUserExercises,
+    onSuccess,
+  ]);
 
-  const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(
-    null
+  // Memoized DropdownMenuRadioItems for workout types to avoid recreating on every render
+  const workoutTypeItems = useMemo(
+    () =>
+      EXERCISE_TYPES.map((t) => (
+        <DropdownMenuRadioItem
+          key={t}
+          value={t}
+          className="cursor-pointer hide-scrollbar"
+        >
+          {t.charAt(0).toUpperCase() + t.slice(1)}
+        </DropdownMenuRadioItem>
+      )),
+    []
   );
+
+  // Memoized filtered exercises list render
+  const filteredExercisesList = useMemo(() => {
+    if (filteredExercises.length === 0)
+      return (
+        <div className="px-4 py-2 text-sm text-muted-foreground">
+          No exercises found
+        </div>
+      );
+
+    return filteredExercises.map((ex) => (
+      <div
+        key={ex.id}
+        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md flex justify-between items-center group"
+      >
+        <span
+          className="cursor-pointer flex-1"
+          onClick={() => handleSelectExercise(ex)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSelectExercise(ex);
+          }}
+        >
+          {ex.name}
+        </span>
+        <button
+          onClick={() => setExerciseToDelete(ex)}
+          aria-label={`Delete ${ex.name}`}
+          className="text-red-500 hover:text-red-700 font-extrabold text-xl mr-2 cursor-pointer"
+        >
+          &times;
+        </button>
+      </div>
+    ));
+  }, [filteredExercises, handleSelectExercise]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="flex flex-col">
+      <DialogContent className="w-1/3 h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Add New Workout</DialogTitle>
           <DialogDescription>
-            Fill in the workout details and save your progress.
+            Track your workouts, gain muscle, and become stronger
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col space-y-4">
-          <div className="flex w-full justify-between">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="cursor-pointer w-[45%]" variant="outline">
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuRadioGroup value={type} onValueChange={setType}>
-                  {[
-                    "push",
-                    "pull",
-                    "legs",
-                    "upper",
-                    "lower",
-                    "arms",
-                    "shoulders",
-                    "full body",
-                  ].map((t) => (
-                    <DropdownMenuRadioItem
-                      key={t}
-                      value={t}
-                      className="cursor-pointer"
-                    >
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  data-empty={!selectedDate}
-                  className="data-[empty=true]:text-muted-foreground w-[45%] justify-start text-left font-normal cursor-pointer"
-                >
-                  <CalendarIcon />
-                  {selectedDate ? (
-                    format(selectedDate, "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date) => date > new Date()}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full mt-4 text-black dark:text-white cursor-pointer"
+            >
+              Workout Type: {type.charAt(0).toUpperCase() + type.slice(1)}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[160px]">
+            <DropdownMenuLabel>Select Type</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={type} onValueChange={setType}>
+              {workoutTypeItems}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="cursor-pointer">
-                Select Exercise
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 max-h-80 overflow-auto flex flex-col gap-2 p-2">
-              <DropdownMenuLabel>Exercises</DropdownMenuLabel>
-              <Input
-                type="text"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.stopPropagation()}
-                className="mb-2"
-              />
-              {filteredExercises.length === 0 ? (
-                <div className="px-4 py-2 text-sm text-muted-foreground">
-                  No exercises found
-                </div>
+        {/* Date Picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full my-4 justify-start text-left font-normal cursor-pointer"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {selectedDate ? (
+                format(selectedDate, "PPP")
               ) : (
-                filteredExercises.map((ex) => (
-                  <div
-                    key={ex.id}
-                    className="flex justify-between items-center cursor-pointer px-2 py-1 hover:bg-muted rounded"
-                  >
-                    <DropdownMenuRadioItem
-                      value={ex.name}
-                      onClick={() => handleSelectExercise(ex)}
-                      className="flex-grow cursor-pointer"
-                    >
-                      {ex.name}
-                    </DropdownMenuRadioItem>
-                    <button
-                      className="text-xl text-red-500 hover:text-red-700 ml-auto cursor-pointer font-extrabold"
-                      aria-label={`Delete ${ex.name}`}
-                      onClick={() => setExerciseToDelete(ex)}
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))
+                <span>Pick a date</span>
               )}
-              <hr className="my-2 border-t border-muted-foreground" />
-              <div className="flex flex-col gap-2 px-2">
-                <Input
-                  type="text"
-                  placeholder="Add exercise"
-                  value={customExerciseName}
-                  onChange={(e) => setCustomExerciseName(e.target.value)}
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCustomExercise();
-                    }
-                  }}
-                  className="flex-grow"
-                />
-                <Button
-                  className="cursor-pointer"
-                  size="sm"
-                  onClick={addCustomExercise}
-                  disabled={!customExerciseName.trim()}
-                >
-                  Add
-                </Button>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              disabled={(date) => date > new Date()}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
 
-          <div className="max-h-[400px] overflow-y-auto hide-scrollbar grid grid-cols-[2.5fr_1fr_1fr_1fr_auto] gap-4 p-3 bg-muted rounded">
-            <div className="font-semibold">Exercise</div>
-            <div className="font-semibold text-center">Sets</div>
-            <div className="font-semibold text-center">Reps</div>
-            <div className="font-semibold text-center">Weight</div>
-            <div></div>
-            {selectedExercises.map((ex) => (
-              <React.Fragment key={ex.id}>
-                <div key={`name-${ex.id}`} className="flex items-center">
-                  {ex.name}
-                </div>
-                <div
-                  key={`sets-${ex.id}`}
-                  className="flex items-center justify-center"
-                >
-                  <Input
-                    type="number"
-                    className="w-16"
-                    value={ex.sets}
-                    onChange={(e) =>
-                      updateExerciseField(ex.id, "sets", Number(e.target.value))
-                    }
-                    min={1}
-                  />
-                </div>
-                <div
-                  key={`reps-${ex.id}`}
-                  className="flex items-center justify-center"
-                >
-                  <Input
-                    type="number"
-                    className="w-16"
-                    value={ex.reps}
-                    onChange={(e) =>
-                      updateExerciseField(ex.id, "reps", Number(e.target.value))
-                    }
-                    min={1}
-                  />
-                </div>
-                <div
-                  key={`weight-${ex.id}`}
-                  className="flex items-center justify-center"
-                >
-                  <Input
-                    type="number"
-                    className="w-20"
-                    value={ex.weight}
-                    onChange={(e) =>
-                      updateExerciseField(
-                        ex.id,
-                        "weight",
-                        Number(e.target.value)
-                      )
-                    }
-                    min={0}
-                  />
-                </div>
-                <div
-                  key={`remove-${ex.id}`}
-                  className="flex items-center justify-center"
-                >
-                  <button
-                    className="text-xl text-red-500 hover:text-red-700 cursor-pointer font-extrabold"
-                    aria-label={`Remove ${ex.name}`}
-                    onClick={() => handleRemoveExercise(ex.id)}
-                  >
-                    &times;
-                  </button>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
+        {/* Selected Exercises Grid Header */}
+        <div className="grid grid-cols-5 gap-4 items-center text-center font-semibold border-b border-b-slate-700 pb-1 mb-2 mt-6">
+          <div>Name</div>
+          <div>Sets</div>
+          <div>Reps</div>
+          <div>Weight (kg)</div>
+          <div>Remove</div>
+        </div>
 
-          <Button className="cursor-pointer" onClick={handleSaveWorkout}>
-            Save Workout
+        {/* Selected Exercises */}
+        <div className="max-h-64 overflow-y-auto space-y-2 hide-scrollbar">
+          {selectedExercises.map((ex) => (
+            <div key={ex.id} className="grid grid-cols-5 gap-4 items-center">
+              <ExerciseRow
+                ex={ex}
+                onUpdateField={updateExerciseField}
+                onRemove={handleRemoveExercise}
+              />
+            </div>
+          ))}
+        </div>
+
+        <Input
+          placeholder="Search exercises to add"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="mt-4 mb-2"
+          autoComplete="off"
+          aria-label="Search exercises"
+        />
+        <div
+          className="max-h-48 overflow-y-auto rounded-md border border-zinc-700 hide-scrollbar"
+          role="listbox"
+          aria-label="Filtered exercises"
+        >
+          {filteredExercisesList}
+        </div>
+
+        <div className="flex gap-2 mt-3">
+          <Input
+            placeholder="Add custom exercise"
+            value={customExerciseName}
+            onChange={(e) => setCustomExerciseName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") addCustomExercise();
+            }}
+            aria-label="Add custom exercise"
+          />
+          <Button
+            variant="outline"
+            className="min-w-[130px] cursor-pointer"
+            onClick={addCustomExercise}
+            type="button"
+          >
+            Add Exercise
           </Button>
         </div>
+
+        {/* Save Button */}
+        <Button
+          className="mt-6 w-full cursor-pointer"
+          onClick={handleSaveWorkout}
+          type="button"
+        >
+          Save Workout
+        </Button>
       </DialogContent>
       <Dialog
         open={!!exerciseToDelete}
@@ -468,7 +498,7 @@ export default function AddWorkoutForm({
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete{" "}
+              Are you sure you want to delete the exercise{" "}
               <strong>{exerciseToDelete?.name}</strong>?
             </DialogDescription>
           </DialogHeader>

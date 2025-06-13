@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { prs } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 
@@ -13,14 +13,14 @@ type PR = {
   createdAt: string;
 };
 
-const bodyweightExercises = [
+const bodyweightExercises = new Set([
   "Pull-Up",
   "Push-Up",
   "Dips",
   "Chin-Up",
   "Inverted Row",
   "Bodyweight Squat",
-];
+]);
 
 export async function GET() {
   const { userId } = await auth();
@@ -29,41 +29,34 @@ export async function GET() {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  // Get distinct exercise names
-  const distinctExercises: { exerciseName: string }[] = await db
-    .selectDistinctOn([prs.exerciseName])
+  // Get all PRs for the user, ordered by exerciseName, then descending date
+  const allPrsRaw = await db
+    .select()
     .from(prs)
-    .where(eq(prs.userId, userId));
+    .where(eq(prs.userId, userId))
+    .orderBy(prs.exerciseName, desc(prs.date));
 
-  const exerciseNames: string[] = distinctExercises.map(
-    (row) => row.exerciseName
-  );
-
-  // Get all PRs
-  const allPrs: PR[] = (
-    await db
-      .select()
-      .from(prs)
-      .where(eq(prs.userId, userId))
-      .orderBy(prs.exerciseName, prs.date)
-  ).map((pr) => ({
+  // Map and convert dates only once
+  const allPrs: PR[] = allPrsRaw.map((pr) => ({
     ...pr,
     date: pr.date.toString(),
     createdAt: pr.createdAt.toISOString(),
   }));
 
-  // Group them
-  const grouped = exerciseNames.map((name) => {
-    const records = allPrs
-      .filter((pr) => pr.exerciseName === name)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Group PRs by exerciseName using a Map
+  const prMap = new Map<string, PR[]>();
+  for (const pr of allPrs) {
+    prMap.has(pr.exerciseName)
+      ? prMap.get(pr.exerciseName)!.push(pr)
+      : prMap.set(pr.exerciseName, [pr]);
+  }
 
-    return {
-      name,
-      isBodyweight: bodyweightExercises.includes(name),
-      prs: records,
-    };
-  });
+  // Build grouped array with isBodyweight flag
+  const grouped = Array.from(prMap.entries()).map(([name, prs]) => ({
+    name,
+    isBodyweight: bodyweightExercises.has(name),
+    prs,
+  }));
 
   return NextResponse.json(grouped);
 }
