@@ -7,6 +7,7 @@ import { useState } from "react";
 import AddWorkoutForm from "@/components/feature/AddWorkoutForm";
 import PersonalRecords from "@/components/feature/PersonalRecords";
 import WorkoutsList from "@/components/feature/WorkoutsList";
+import { Leaderboard } from "@/components/feature/LeaderBoard";
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -51,6 +52,11 @@ export default function Home() {
           <div className="w-full flex justify-around">
             <WorkoutsList refreshKey={refreshKey} onSuccess={refreshRecords} />
             <PersonalRecords refreshKey={refreshKey} />
+          </div>
+          <div className="w-full flex justify-around">
+            <WorkoutsList refreshKey={refreshKey} onSuccess={refreshRecords} />
+            <PersonalRecords refreshKey={refreshKey} />
+            <Leaderboard />
           </div>
         </div>
       </SignedIn>

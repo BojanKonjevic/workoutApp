@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Trash2, MinusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -114,12 +115,12 @@ const ExerciseRow = React.memo(function ExerciseRow({
       </div>
       <div className="flex items-center justify-center">
         <button
-          className="text-xl text-red-500 hover:text-red-700 cursor-pointer font-extrabold"
+          className="text-muted-foreground hover:text-destructive cursor-pointer"
           aria-label={`Remove ${ex.name}`}
           onClick={handleRemove}
           type="button"
         >
-          &times;
+          <MinusCircle size={18} />
         </button>
       </div>
     </>
@@ -360,9 +361,9 @@ export default function AddWorkoutForm({
         <button
           onClick={() => setExerciseToDelete(ex)}
           aria-label={`Delete ${ex.name}`}
-          className="text-red-500 hover:text-red-700 font-extrabold text-xl mr-2 cursor-pointer"
+          className="text-muted-foreground hover:text-destructive cursor-pointer mr-2 mt-2"
         >
-          &times;
+          <Trash2 size={18} />
         </button>
       </div>
     ));

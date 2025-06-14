@@ -16,8 +16,12 @@
 - [x] For now finish the adding workout form component
 - [x] Display workouts and PRs on the page
 - [x] Enable deleting Workouts
+- [ ] Add tags to workouts “Deload”, “Injury”, “Heavy”
+- [ ] Add calendar to show when you worked out
+- [ ] Add weight and step tracking with charts
 - [ ] Add filtering by workout type
-- [ ] Make it look good
+- [ ] Weight tracking and a chart
+- [ ] Calendar and message that says how many workouts in the year, month, and week, cycling through
 
 ### Settings Page
 
