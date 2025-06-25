@@ -54,7 +54,7 @@ export default function Home() {
             <PersonalRecords refreshKey={refreshKey} />
           </div>
           <div className="w-full flex justify-around">
-            <Leaderboard />
+            <Leaderboard refreshKey={refreshKey} />
           </div>
         </div>
       </SignedIn>

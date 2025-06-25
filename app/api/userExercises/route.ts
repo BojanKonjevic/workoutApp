@@ -91,7 +91,11 @@ export async function GET() {
     .where(eq(userExercises.userId, userId));
 
   return NextResponse.json(
-    exercises.map((ex) => ({ id: ex.id, name: ex.name }))
+    exercises.map((ex) => ({
+      id: ex.id,
+      name: ex.name,
+      highestWeight: ex.highestWeight,
+    }))
   );
 }
 

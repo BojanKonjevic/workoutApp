@@ -19,17 +19,33 @@ import {
 import { workouts } from "@/db/schema";
 import { InferModel } from "drizzle-orm";
 
+// Types
 type Exercise = {
   id: number;
   name: string;
   sets: number;
   reps: number;
   topWeight: number;
+  isPR?: boolean;
 };
 
-// Helper to get ordinal suffix for a day number
+type Workout = InferModel<typeof workouts> & {
+  exercises: Exercise[];
+  workoutHasPR?: boolean;
+};
+
+type WorkoutsListProps = {
+  refreshKey: number;
+  onSuccess: () => void;
+};
+
+// Helpers
+function normalizeName(name: string) {
+  return name.trim().toLowerCase();
+}
+
 function getOrdinalSuffix(day: number) {
-  if (day > 3 && day < 21) return "th"; // 11th to 20th
+  if (day > 3 && day < 21) return "th";
   switch (day % 10) {
     case 1:
       return "st";
@@ -45,25 +61,40 @@ function getOrdinalSuffix(day: number) {
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return dateStr;
-
   const options: Intl.DateTimeFormatOptions = { month: "long" };
   const month = date.toLocaleString("en-US", options);
   const day = date.getDate();
-
-  const ordinal = getOrdinalSuffix(day);
-
-  return `${month} ${day}${ordinal}`;
+  return `${month} ${day}${getOrdinalSuffix(day)}`;
 }
 
-type Workout = InferModel<typeof workouts> & {
-  exercises: Exercise[];
-};
+function markHistoricalPRs(workouts: Workout[]): Workout[] {
+  const maxMap = new Map<string, number>();
 
-type WorkoutsListProps = {
-  refreshKey: number;
-  onSuccess: () => void;
-};
+  return workouts
+    .slice()
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // chronological
+    .map((workout) => {
+      let workoutHasPR = false;
+      const updatedExercises = workout.exercises.map((ex) => {
+        const normalized = normalizeName(ex.name);
+        const weight = Number(ex.topWeight);
+        const currentMax = maxMap.get(normalized) ?? 0;
+        const isPR = !isNaN(weight) && weight > currentMax;
 
+        if (isPR) {
+          maxMap.set(normalized, weight);
+          workoutHasPR = true;
+        }
+
+        return { ...ex, isPR };
+      });
+
+      return { ...workout, exercises: updatedExercises, workoutHasPR };
+    })
+    .reverse();
+}
+
+// Component
 export default function WorkoutsList({
   refreshKey,
   onSuccess,
@@ -103,7 +134,10 @@ export default function WorkoutsList({
         const res = await fetch("/api/getWorkouts");
         if (res.ok) {
           const data = await res.json();
-          if (isMounted) setWorkouts(data);
+          if (isMounted) {
+            const marked = markHistoricalPRs(data);
+            setWorkouts(marked);
+          }
         } else {
           toast.error("Failed to fetch workouts");
         }
@@ -113,8 +147,8 @@ export default function WorkoutsList({
         if (isMounted) setLoading(false);
       }
     }
-    fetchWorkouts();
 
+    fetchWorkouts();
     return () => {
       isMounted = false;
     };
@@ -128,40 +162,46 @@ export default function WorkoutsList({
       <h1 className="text-3xl font-bold mb-4 text-center">Your Workouts</h1>
 
       <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto hide-scrollbar">
-        {workouts.map((workout, index) => {
-          const exercises: Exercise[] = workout.exercises ?? [];
-
-          return (
-            <Accordion
-              key={workout.id}
-              type="single"
-              collapsible
-              className="w-full border rounded-2xl shadow-sm hover:shadow-md transition"
-            >
-              <AccordionItem value={String(index)}>
-                <AccordionTrigger className="p-4">
-                  <div className="flex justify-between w-full items-center">
-                    <h2 className="capitalize font-semibold text-lg">
-                      {workout.type}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(workout.date)}
-                    </p>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4 pt-2">
-                  <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-1 text-sm font-semibold text-muted-foreground mb-2 border-b pb-1">
-                    <span>Exercise</span>
-                    <span>Volume</span>
-                    <span>Top Set</span>
-                  </div>
-                  <ul className="space-y-2">
-                    {exercises.map(({ id, name, sets, reps, topWeight }) => (
+        {workouts.map((workout, index) => (
+          <Accordion
+            key={workout.id}
+            type="single"
+            collapsible
+            className="w-full border rounded-2xl shadow-sm hover:shadow-md transition"
+          >
+            <AccordionItem value={String(index)}>
+              <AccordionTrigger className="p-4">
+                <div className="flex justify-between w-full items-center">
+                  <h2 className="capitalize font-semibold text-lg flex items-center gap-2">
+                    {workout.type}
+                    {workout.workoutHasPR && (
+                      <span className="text-lg px-1 py-0.5">🥇</span>
+                    )}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDate(workout.date)}
+                  </p>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2">
+                <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-1 text-sm font-semibold text-muted-foreground mb-2 border-b pb-1">
+                  <span>Exercise</span>
+                  <span>Volume</span>
+                  <span>Top Set</span>
+                </div>
+                <ul className="space-y-2">
+                  {workout.exercises.map(
+                    ({ id, name, sets, reps, topWeight, isPR }) => (
                       <li
                         className="grid grid-cols-[1fr_auto_auto] gap-4 px-1"
                         key={id}
                       >
-                        <p className="font-medium">{name}</p>
+                        <p className="font-medium flex items-center gap-2">
+                          {name}
+                          {isPR && (
+                            <span className="text-lg px-1 py-0.5">🥇</span>
+                          )}
+                        </p>
                         <p className="whitespace-nowrap text-right">
                           {sets}x{reps}
                         </p>
@@ -169,24 +209,23 @@ export default function WorkoutsList({
                           {topWeight}kg
                         </p>
                       </li>
-                    ))}
-                  </ul>
-
-                  <div className="flex justify-end pt-4">
-                    <Button
-                      className="cursor-pointer bg-red-600"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setWorkoutToDelete(workout)}
-                    >
-                      Delete Workout
-                    </Button>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          );
-        })}
+                    )
+                  )}
+                </ul>
+                <div className="flex justify-end pt-4">
+                  <Button
+                    className="cursor-pointer bg-red-600"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setWorkoutToDelete(workout)}
+                  >
+                    Delete Workout
+                  </Button>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ))}
       </div>
 
       <Dialog
@@ -209,11 +248,7 @@ export default function WorkoutsList({
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">
-            <Button
-              className="cursor-pointer"
-              variant="outline"
-              onClick={() => setWorkoutToDelete(null)}
-            >
+            <Button variant="outline" onClick={() => setWorkoutToDelete(null)}>
               Cancel
             </Button>
             <Button
