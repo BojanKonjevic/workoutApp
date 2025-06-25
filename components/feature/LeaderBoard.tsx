@@ -29,7 +29,7 @@ type FlattenedPR = {
   date: string;
 };
 
-export function Leaderboard({ refreshKey }: { refreshKey: number }) {
+export default function Leaderboard({ refreshKey }: { refreshKey: number }) {
   const [flattened, setFlattened] = useState<FlattenedPR[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

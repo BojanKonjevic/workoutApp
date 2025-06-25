@@ -155,7 +155,6 @@ export default function WorkoutsList({
   }, [refreshKey]);
 
   if (loading) return <p>Loading workouts...</p>;
-  if (!workouts.length) return <h1>No workouts found.</h1>;
 
   return (
     <div className="max-w-xl w-full mx-auto space-y-6">

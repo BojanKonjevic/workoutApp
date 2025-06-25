@@ -17,7 +17,7 @@
 - [x] Display workouts and PRs on the page
 - [x] Enable deleting Workout
 - [x] Show in the list of workouts if that workout contains a PR, and which exercises are PRs
-- [ ] Add calendar to show when you worked out
+- [x] Add calendar to show when you worked out
 - [ ] Add weight and step tracking with charts
 - [ ] Add filtering by workout type
 - [ ] Weight tracking and a chart

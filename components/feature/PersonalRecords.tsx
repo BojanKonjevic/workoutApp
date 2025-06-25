@@ -189,8 +189,6 @@ export default function PersonalRecords({
   }, [refreshKey]);
 
   if (loading) return <p>Loading PRs...</p>;
-  if (!data.length) return <p>No personal records found.</p>;
-
   return (
     <div className="max-w-xl w-full mx-auto space-y-6">
       <h1 className="text-3xl font-bold mb-4 text-center">
