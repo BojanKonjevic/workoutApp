@@ -17,21 +17,13 @@
 - [x] Display workouts and PRs on the page
 - [x] Enable deleting Workout
 - [x] Show in the list of workouts if that workout contains a PR, and which exercises are PRs
-- [x] Add calendar to show when you worked out
-- [ ] Add weight and step tracking with charts
-- [ ] Add filtering by workout type
-- [ ] Weight tracking and a chart
+- [x] Add calendar to show when you worked out\
+- [x] Add filtering by workout type
 - [ ] Calendar and message that says how many workouts in the year, month, and week, cycling through
-
-### Settings Page
-
-- [ ] Create a Settings page route
-- [ ] Add theme toggle (light/dark mode) with persistent state (localStorage or user metadata)
-- [ ] Maybe some more options IDK
+- [ ] Add light/dark theme toggle
 
 ### Bonus
 
 - [x] Add a Good Morning/Evening message based on user’s local time
 - [ ] Add user roles (admin/user) and role-based pages
-- [ ] Add weight tracking and a chart to show progress
-- [ ] Add a consistency tracker, like you've done this many workouts in this time
+- [ ] Make layout responsive, maybe final style changes

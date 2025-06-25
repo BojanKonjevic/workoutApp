@@ -19,7 +19,17 @@ import {
 import { workouts } from "@/db/schema";
 import { InferModel } from "drizzle-orm";
 
-// Types
+const workoutTypes = [
+  "push",
+  "pull",
+  "legs",
+  "upper",
+  "lower",
+  "arms",
+  "shoulders",
+  "full",
+];
+
 type Exercise = {
   id: number;
   name: string;
@@ -102,6 +112,7 @@ export default function WorkoutsList({
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [workoutToDelete, setWorkoutToDelete] = useState<Workout | null>(null);
+  const [filterType, setFilterType] = useState<string | null>(null);
 
   const handleDelete = useCallback(
     async (id: number) => {
@@ -155,76 +166,101 @@ export default function WorkoutsList({
   }, [refreshKey]);
 
   if (loading) return <p>Loading workouts...</p>;
-
+  const filteredWorkouts = filterType
+    ? workouts.filter((w) => w.type.toLowerCase() === filterType)
+    : workouts;
   return (
     <div className="max-w-xl w-full mx-auto space-y-6">
-      <h1 className="text-3xl font-bold mb-4 text-center">Your Workouts</h1>
+      <div className="relative mb-4">
+        <h1 className="text-3xl font-bold text-center">Your Workouts</h1>
+
+        <div className="absolute right-0 top-1">
+          <select
+            value={filterType ?? ""}
+            onChange={(e) => setFilterType(e.target.value || null)}
+            className="border border-input bg-background px-3 py-2 rounded-md text-sm cursor-pointer"
+          >
+            <option value="">All</option>
+            {workoutTypes.map((type) => (
+              <option key={type} value={type}>
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto hide-scrollbar">
-        {workouts.map((workout, index) => (
-          <Accordion
-            key={workout.id}
-            type="single"
-            collapsible
-            className="w-full border rounded-2xl shadow-sm hover:shadow-md transition"
-          >
-            <AccordionItem value={String(index)}>
-              <AccordionTrigger className="p-4">
-                <div className="flex justify-between w-full items-center">
-                  <h2 className="capitalize font-semibold text-lg flex items-center gap-2">
-                    {workout.type}
-                    {workout.workoutHasPR && (
-                      <span className="text-lg px-1 py-0.5">🥇</span>
+        {!filteredWorkouts.length ? (
+          <p className="text-center text-muted-foreground">
+            No workouts of this type found.
+          </p>
+        ) : (
+          filteredWorkouts.map((workout, index) => (
+            <Accordion
+              key={workout.id}
+              type="single"
+              collapsible
+              className="w-full border rounded-2xl shadow-sm hover:shadow-md transition"
+            >
+              <AccordionItem value={String(index)}>
+                <AccordionTrigger className="p-4">
+                  <div className="flex justify-between w-full items-center">
+                    <h2 className="capitalize font-semibold text-lg flex items-center gap-2">
+                      {workout.type}
+                      {workout.workoutHasPR && (
+                        <span className="text-lg px-1 py-0.5">🥇</span>
+                      )}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(workout.date)}
+                    </p>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-2">
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-1 text-sm font-semibold text-muted-foreground mb-2 border-b pb-1">
+                    <span>Exercise</span>
+                    <span>Volume</span>
+                    <span>Top Set</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {workout.exercises.map(
+                      ({ id, name, sets, reps, topWeight, isPR }) => (
+                        <li
+                          className="grid grid-cols-[1fr_auto_auto] gap-4 px-1"
+                          key={id}
+                        >
+                          <p className="font-medium flex items-center gap-2">
+                            {name}
+                            {isPR && (
+                              <span className="text-lg px-1 py-0.5">🥇</span>
+                            )}
+                          </p>
+                          <p className="whitespace-nowrap text-right">
+                            {sets}x{reps}
+                          </p>
+                          <p className="whitespace-nowrap text-right">
+                            {topWeight}kg
+                          </p>
+                        </li>
+                      )
                     )}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(workout.date)}
-                  </p>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4 pt-2">
-                <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-1 text-sm font-semibold text-muted-foreground mb-2 border-b pb-1">
-                  <span>Exercise</span>
-                  <span>Volume</span>
-                  <span>Top Set</span>
-                </div>
-                <ul className="space-y-2">
-                  {workout.exercises.map(
-                    ({ id, name, sets, reps, topWeight, isPR }) => (
-                      <li
-                        className="grid grid-cols-[1fr_auto_auto] gap-4 px-1"
-                        key={id}
-                      >
-                        <p className="font-medium flex items-center gap-2">
-                          {name}
-                          {isPR && (
-                            <span className="text-lg px-1 py-0.5">🥇</span>
-                          )}
-                        </p>
-                        <p className="whitespace-nowrap text-right">
-                          {sets}x{reps}
-                        </p>
-                        <p className="whitespace-nowrap text-right">
-                          {topWeight}kg
-                        </p>
-                      </li>
-                    )
-                  )}
-                </ul>
-                <div className="flex justify-end pt-4">
-                  <Button
-                    className="cursor-pointer bg-red-600"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setWorkoutToDelete(workout)}
-                  >
-                    Delete Workout
-                  </Button>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        ))}
+                  </ul>
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      className="cursor-pointer bg-red-600"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setWorkoutToDelete(workout)}
+                    >
+                      Delete Workout
+                    </Button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          ))
+        )}
       </div>
 
       <Dialog
