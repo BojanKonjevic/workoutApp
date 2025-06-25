@@ -54,8 +54,6 @@ export default function Home() {
             <PersonalRecords refreshKey={refreshKey} />
           </div>
           <div className="w-full flex justify-around">
-            <WorkoutsList refreshKey={refreshKey} onSuccess={refreshRecords} />
-            <PersonalRecords refreshKey={refreshKey} />
             <Leaderboard />
           </div>
         </div>

@@ -55,7 +55,7 @@ const EXERCISE_TYPES = [
   "lower",
   "arms",
   "shoulders",
-  "full body",
+  "full",
 ];
 
 // Memoized Exercise Row to prevent unnecessary re-renders

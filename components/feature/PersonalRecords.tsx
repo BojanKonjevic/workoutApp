@@ -21,20 +21,18 @@ type PR = {
   id: number;
   userId: string;
   exerciseName: string;
-  weight: string; // parseFloat(weight) for numbers
+  weight: string;
   date: string;
   createdAt: string;
 };
 
 type GroupedPRs = {
   name: string;
-  isBodyweight: boolean;
   prs: PR[];
 };
 
-// Helper to get ordinal suffix for day number
 const getOrdinalSuffix = (day: number) => {
-  if (day > 3 && day < 21) return "th"; // 11th-20th
+  if (day > 3 && day < 21) return "th";
   switch (day % 10) {
     case 1:
       return "st";
@@ -57,25 +55,14 @@ const formatDate = (dateStr: string) => {
 };
 
 function PRGroup({ group }: { group: GroupedPRs }) {
-  const isBodyweight = useMemo(
-    () => ["Pull-Up", "Push-Up", "Dips"].includes(group.name),
-    [group.name]
-  );
-
-  // Calculate currentPR memoized
   const currentPR = useMemo(() => {
-    if (isBodyweight) {
-      return `${group.prs.length} record${group.prs.length !== 1 ? "s" : ""}`;
-    }
-    // max weight number
     const maxWeight = group.prs.reduce((max, pr) => {
       const weightNum = parseFloat(pr.weight);
       return weightNum > max ? weightNum : max;
     }, 0);
     return `${maxWeight} kg`;
-  }, [group.prs, isBodyweight]);
+  }, [group.prs]);
 
-  // Sorted PRs by date ascending for chart and list
   const sortedPRs = useMemo(
     () =>
       [...group.prs].sort(
@@ -84,7 +71,6 @@ function PRGroup({ group }: { group: GroupedPRs }) {
     [group.prs]
   );
 
-  // Chart data formatted once
   const chartData = useMemo(
     () =>
       sortedPRs.map((pr) => ({
@@ -168,10 +154,13 @@ export default function PersonalRecords({
       try {
         const res = await fetch("/api/getRecords");
         if (!res.ok) throw new Error("Failed to fetch PRs");
-        const json: GroupedPRs[] = await res.json();
+        const json = await res.json();
 
-        // Sort groups by latest PR date descending
-        json.sort((a, b) => {
+        const cleanedData: GroupedPRs[] = json.map(
+          ({ name, prs }: { name: string; prs: PR[] }) => ({ name, prs })
+        );
+
+        cleanedData.sort((a, b) => {
           const latestA = a.prs.reduce(
             (latest, pr) =>
               new Date(pr.date) > latest ? new Date(pr.date) : latest,
@@ -185,7 +174,7 @@ export default function PersonalRecords({
           return latestB.getTime() - latestA.getTime();
         });
 
-        if (isMounted) setData(json);
+        if (isMounted) setData(cleanedData);
       } catch (error) {
         console.error(error);
         if (isMounted) setData([]);
